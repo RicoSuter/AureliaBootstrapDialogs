@@ -29,21 +29,19 @@ export class DialogService {
         };
         
         return this.compositionEngine.compose(instruction).then((controller: Controller) => {
-            return this.close<TDialog>(controller, dialogDiv, backdropDiv, onCreated);
+            document.body.classList.toggle("modal-open");
+
+            var dialog = controller.view.bindingContext as TDialog;
+            if (onCreated)
+                onCreated(dialog);
+
+            return this.waitForClose<TDialog>(dialog, controller, dialogDiv, backdropDiv);
         });
     }
 
-    private close<TDialog extends DialogBase>(controller: Controller, dialogDiv: HTMLDivElement,
-        backdropDiv: HTMLDivElement, onCreated?: (dialog: TDialog) => void): Promise<TDialog> {
+    private waitForClose<TDialog extends DialogBase>(dialog: TDialog, controller: Controller, 
+        dialogDiv: HTMLDivElement, backdropDiv: HTMLDivElement): Promise<TDialog> {
         
-        document.body.classList.toggle("modal-open");
-
-        var view = controller.view;
-        var dialog = view.bindingContext as TDialog;
-
-        if (onCreated)
-            onCreated(dialog);
-
         return new Promise<TDialog>((resolve, reject) => {
             dialog.element.addEventListener("close", () => {
                 document.body.classList.toggle("modal-open");
@@ -51,8 +49,8 @@ export class DialogService {
                 dialogDiv.remove();
                 backdropDiv.remove();
 
-                view.unbind();
-                view.removeNodes(); 
+                controller.view.unbind();
+                controller.view.removeNodes(); 
 
                 resolve(dialog);
             });
